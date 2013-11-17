@@ -4,7 +4,7 @@ Not sure exactly what the module does, but it's a misc device that does things w
         
 ##The vulnerability
 
-We have the following:
+We have the following relevant code excerpts:
 ```c        
 #define MAX_CONSUMERS 255
 
