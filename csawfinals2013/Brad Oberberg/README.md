@@ -141,7 +141,7 @@ To overcome this we need to find a way to get *cbuf->seed* and then we can recal
 
 ##The exploit
         
-So what needs to be done to successfully exploitat the bug is:
+So the steps in exploiting this bug:
 * create a cbuf using *CSAW_ALLOC_HANDLE* and get its associated handle
 * use the index-too-large vuln (or whatever you want to call it) to read the value of *cbuf->buf* with *CSAW_GET_CONSUMER*
 * *cbuf->buf ^ handle* to get the value of the seed
