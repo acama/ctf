@@ -82,17 +82,17 @@ case CSAW_WRITE_HANDLE:
 }
 ```
 
-At [1] we see that *csaw_buf.consumers* array is of length 255 but at [2] we see that *consumer_args.offset* is a unsigned char meaning (i.e its value can range from 0 to 255).
+At [1] we see that *csaw_buf.consumers* array is of length 255 but at [2] we see that *consumer_args.offset* is an unsigned char (i.e its value can range from 0 to 255).
 The user controls the value of consumer_args.offset and consumer_args.pid so this means that we can overwrite whatever is just
-after the *csaw_buf.consumers* array which turns out to be *csaw_buf.buf*, a pointer we can write to and read from.
-At [3] we can write into *cbuf->buf* whatver is *write_args.in* (which we also control)
+after the *csaw_buf.consumers* array which turns out to be *csaw_buf.buf*.
+At [3] we can write into *cbuf->buf* whatver is pointed to by *write_args.in* which we have control over.
 All in all, this is an **arbitrary write** (and read for that matter) vulnerability. Michael was very kind to have this type of vuln and not some of the other less pleasant types of vulnerabilities.
 
 ##The obstacles around the vulnerability
         
 There's a few things we have to do and take care of before we can actually trigger the overwrite.
-Through the module, some checks are performed. 
-When we create/allocate a handle, the function *alloc_buf()* is called which at some point
+Throughout the module, some checks are performed. 
+When we create/allocate a handle, the function *alloc_buf()* is called and at some point
 does the following:
         
 ```c
@@ -134,14 +134,14 @@ list_for_each_entry ( cbuf, &csaw_bufs, list )
 return NULL; 
 ```
 
-This is a problem because we are going to overwrite *cbuf->buf* and so the handle calculated at [2] in alloc buf will be different from won't match.
+This is a problem because we are going to overwrite *cbuf->buf* and so the handle calculated at [2] in alloc buf will be different from the original handle calculated in *alloc_buf()*.
 
-To overcome this we need to find a way to get *cbuf->seed and* then we can recalculate the new handle since we control the value of *cbuf->buf* (thanks to the overwrite).
+To overcome this we need to find a way to get *cbuf->seed* and then we can recalculate the new handle since we control the value of *cbuf->buf* (thanks to the overwrite).
 
 
 ##The exploit
         
-So the exploitation works as follows:
+So what needs to be done to successfully exploitat the bug is:
 * create a cbuf using *CSAW_ALLOC_HANDLE* and get its associated handle
 * use the index-too-large vuln (or whatever you want to call it) to read the value of *cbuf->buf* with *CSAW_GET_CONSUMER*
 * *cbuf->buf ^ handle* to get the value of the seed
