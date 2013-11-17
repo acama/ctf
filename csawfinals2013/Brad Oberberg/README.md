@@ -121,7 +121,7 @@ if ( ! authorized )
         return -EPERM;
 ```
 
-This check we don't have to worry about because it will pass unless we overwrite that consumers[0] value, 
+This check we don't have to worry about because it will pass unless we overwrite that *cbuf->consumers[0]* value, 
 which we have no use in overwriting.
 
 At [2], the second and trickier associated check is the one performed in *find_cbuf()* which does:
