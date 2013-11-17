@@ -4,7 +4,7 @@
         
 ##The vulnerability
 
-        W have the following:
+        We have the following:
 ```c        
 #define MAX_CONSUMERS 255
 
@@ -16,8 +16,7 @@ struct csaw_buf {
     struct list_head list;
 };
 ```
-    --
-        ```c 
+```c 
         case CSAW_SET_CONSUMER:
         {
             struct consumer_args consumer_args;
@@ -42,7 +41,7 @@ struct csaw_buf {
 
             break;
         }
-        ```
+```
         --
         ```c
         struct consumer_args {
