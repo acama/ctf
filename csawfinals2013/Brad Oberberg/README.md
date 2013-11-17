@@ -5,18 +5,18 @@
 ##The vulnerability
 
         W have the following:
-        ```c        
-        #define MAX_CONSUMERS 255
+```c        
+#define MAX_CONSUMERS 255
 
-        struct csaw_buf {
-            unsigned long consumers[MAX_CONSUMERS]; [1]
-            char *buf;
-            unsigned long size;
-            unsigned long seed;
-            struct list_head list;
-        };
-        ```
-        --
+struct csaw_buf {
+    unsigned long consumers[MAX_CONSUMERS]; [1]
+    char *buf;
+    unsigned long size;
+    unsigned long seed;
+    struct list_head list;
+};
+```
+    --
         ```c 
         case CSAW_SET_CONSUMER:
         {
