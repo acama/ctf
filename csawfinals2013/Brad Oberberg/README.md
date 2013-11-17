@@ -146,8 +146,8 @@ cbuf->buf (thanks to the overwrite).
 ##The exploit
         
 So the exploitation works as follows:
-    * Create a cbuf using CSAW_ALLOC_HANDLE and get its associated handle
-    * Use the index-too-large vuln (or whatever you want to call it) to read the value of cbuf->buf with CSAW_GET_CONSUMER
+* Create a cbuf using CSAW_ALLOC_HANDLE and get its associated handle
+* Use the index-too-large vuln (or whatever you want to call it) to read the value of cbuf->buf with CSAW_GET_CONSUMER
     * cbuf->buf ^ handle to get the value of the seed
     * Now we can call CSAW_SET_CONSUMER and using the index-too-large vuln, we overwrite cbuf->buf with 'arbitrary_val'
     * arbitrary_val ^ seed to get the new handle
