@@ -15,9 +15,9 @@
             unsigned long seed;
             struct list_head list;
         };
-
+        ```
         --
- 
+        ```c 
         case CSAW_SET_CONSUMER:
         {
             struct consumer_args consumer_args;
@@ -42,15 +42,15 @@
 
             break;
         }
-        
+        ```
         --
-
+        ```c
         struct consumer_args {
         unsigned long handle;
         unsigned long pid;
         unsigned char offset;
         };
-
+        ```
         --
 
         case CSAW_WRITE_HANDLE:
