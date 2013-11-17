@@ -1,10 +1,10 @@
 #Description
 
-        Not sure what the module does, but it's a misc device that does stuff with structs, linked lists and stuff
+Not sure exactly what the module does, but it's a misc device that does things with structs, arrays, linked lists and stuff. I'd like to thank Michael C. for what I think was the best challenge of the CTF.
         
 ##The vulnerability
 
-        We have the following:
+We have the following:
 ```c        
 #define MAX_CONSUMERS 255
 
@@ -142,16 +142,15 @@ To overcome this we need to find a way to get *cbuf->seed and* then we can recal
 ##The exploit
         
 So the exploitation works as follows:
-* Create a cbuf using *CSAW_ALLOC_HANDLE* and get its associated handle
-* Use the index-too-large vuln (or whatever you want to call it) to read the value of *cbuf->buf* with *CSAW_GET_CONSUMER*
+* create a cbuf using *CSAW_ALLOC_HANDLE* and get its associated handle
+* use the index-too-large vuln (or whatever you want to call it) to read the value of *cbuf->buf* with *CSAW_GET_CONSUMER*
 * *cbuf->buf ^ handle* to get the value of the seed
-* Now we can call *CSAW_SET_CONSUMER* and using the index-too-large vuln, we overwrite *cbuf->buf* with *arbitrary_ptr*
+* now we can call *CSAW_SET_CONSUMER* and using the index-too-large vuln, we overwrite *cbuf->buf* with *arbitrary_ptr*
 * *arbitrary_ptr ^ seed* to get the new handle
-* Now we call *CSAW_WRITE_HANDLE* to trigger the arbitrary write 
+* now we call *CSAW_WRITE_HANDLE* to trigger the arbitrary write
 
-I chose to overwrite the *dnotify_fsnotify_ops.should_send_event* ptr. Note that it's not too reliable to overwrite this
+I chose to overwrite the[*dnotify_fsnotify_ops.should_send_event*](http://lxr.free-electrons.com/source/include/linux/fsnotify_backend.h#L96) ptr. Note that it's not too reliable to overwrite this
 because there might be other programs on the box using dnotify. I took my chances, still.
     
-
 Compile the exploit with gcc exploit.c -o exploit
 We get the pretty '#' and the flag is key{help_im_trapped_in_an_exploit_sweatshop}
