@@ -1,6 +1,6 @@
 #Description
 
-Not sure exactly what the module does, but it's a misc device that does things with structs, arrays, linked lists and stuff. I'd like to thank Michael C. for what I think was the best challenge of the CTF.
+Not sure exactly what the module does, but it's a misc device that does things with structs, arrays, linked lists and stuff.
         
 ##The vulnerability
 
@@ -154,3 +154,5 @@ because there might be other programs on the box using dnotify. I took my chance
     
 Compile the exploit with gcc exploit.c -o exploit
 We get the pretty '#' and the flag is key{help_im_trapped_in_an_exploit_sweatshop}
+
+Thanks Michael C. for the best challenge of the CTF!
