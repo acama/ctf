@@ -82,20 +82,20 @@ case CSAW_WRITE_HANDLE:
 }
 ```
 
-        At [1] we see that csaw_buf.consumers array is of length 255 but in [2] we see that consumer_args.offset is a unsigned char
-        meaning (i.e its value can range from 0 to 255).
-        The user controls the value of consumer_args.offset and consumer_args.pid so this means that we can overwrite whatever is just
-        after the csaw_buf.consumers array which turns out to be csaw_buf.buf, a pointer to a buffer.
-        At [3] we can write into cbuf->buf whatver is write_args.in (which we also control)
-        All in all, this is an arbitrary write vulnerability. Michael was very kind to have this type of vuln and not some of the other 
-        less pleasant types of vulnerabilities.
+At [1] we see that csaw_buf.consumers array is of length 255 but in [2] we see that consumer_args.offset is a unsigned char
+meaning (i.e its value can range from 0 to 255).
+The user controls the value of consumer_args.offset and consumer_args.pid so this means that we can overwrite whatever is just
+after the csaw_buf.consumers array which turns out to be csaw_buf.buf, a pointer to a buffer.
+At [3] we can write into cbuf->buf whatver is write_args.in (which we also control)
+All in all, this is an arbitrary write vulnerability. Michael was very kind to have this type of vuln and not some of the other 
+less pleasant types of vulnerabilities.
 
 ##The obstacles around the vulnerability
         
-        There's a few things we have to do and take care of before we can actually trigger the overwrite.
-        Through the module, some checks are performed. 
-        When we create/allocate a handle, the function alloc_buf() is called which at some point
-        does the following:
+There's a few things we have to do and take care of before we can actually trigger the overwrite.
+Through the module, some checks are performed. 
+When we create/allocate a handle, the function alloc_buf() is called which at some point
+does the following:
         
 ```c
 cbuf->consumers[0] = current->pid; [1]
@@ -111,8 +111,8 @@ list_add(&cbuf->list, &csaw_bufs);
 alloc_args->handle = handle;
 ```
 
-        At [1] it puts our current pid at the beginning of the csaw_buf.consumers array and the associated check that is performed 
-        throughout the module is:
+At [1] it puts our current pid at the beginning of the csaw_buf.consumers array and the associated check that is performed 
+throughout the module is:
 
 ```c       
 for ( i = 0; i < MAX_CONSUMERS; i++ )
@@ -123,10 +123,10 @@ if ( ! authorized )
         return -EPERM;
 ```
 
-        This check we don't have to worry about because it will pass unless we overwrite that consumers[0] value, 
-        which we have no use in overwriting.
- 
-        At [2], the second and trickier associated check is the one performed in find_cbuf() which does:
+This check we don't have to worry about because it will pass unless we overwrite that consumers[0] value, 
+which we have no use in overwriting.
+
+At [2], the second and trickier associated check is the one performed in find_cbuf() which does:
        
 ```c
 list_for_each_entry ( cbuf, &csaw_bufs, list )
@@ -136,22 +136,22 @@ list_for_each_entry ( cbuf, &csaw_bufs, list )
 return NULL; 
 ```
 
-        This is a problem because we are going to overwrite cbuf->buf and so the handle calculated at [2] in alloc buf will be different 
-        from won't match.
-    
-        To overcome this we need to find a way to get cbuf->seed and then we can recalculate the new handle since we control the value of
-        cbuf->buf (thanks to the overwrite).
-   
+This is a problem because we are going to overwrite cbuf->buf and so the handle calculated at [2] in alloc buf will be different 
+from won't match.
+
+To overcome this we need to find a way to get cbuf->seed and then we can recalculate the new handle since we control the value of
+cbuf->buf (thanks to the overwrite).
+
 
 ##The exploit
         
 So the exploitation works as follows:
-    - Create a cbuf using CSAW_ALLOC_HANDLE and get its associated handle
-    - Use the index-too-large vuln (or whatever you want to call it) to read the value of cbuf->buf with CSAW_GET_CONSUMER
-    - cbuf->buf ^ handle to get the value of the seed
-    - Now we can call CSAW_SET_CONSUMER and using the index-too-large vuln, we overwrite cbuf->buf with 'arbitrary_val'
-    - arbitrary_val ^ seed to get the new handle
-    - Now we call CSAW_WRITE_HANDLE to trigger the arbitrary write 
+    * Create a cbuf using CSAW_ALLOC_HANDLE and get its associated handle
+    * Use the index-too-large vuln (or whatever you want to call it) to read the value of cbuf->buf with CSAW_GET_CONSUMER
+    * cbuf->buf ^ handle to get the value of the seed
+    * Now we can call CSAW_SET_CONSUMER and using the index-too-large vuln, we overwrite cbuf->buf with 'arbitrary_val'
+    * arbitrary_val ^ seed to get the new handle
+    * Now we call CSAW_WRITE_HANDLE to trigger the arbitrary write 
 
 I chose to overwrite the dnotify_fsnotify_ops.should_send_event ptr. Note that it's not too reliable to overwrite this
 because there might be other programs on the box using dnotify. I took my chances, still.
