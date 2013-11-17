@@ -145,17 +145,17 @@ return NULL;
 
 ##The exploit
         
-        So the exploitation works as follows:
-            - Create a cbuf using CSAW_ALLOC_HANDLE and get its associated handle
-            - Use the index-too-large vuln (or whatever you want to call it) to read the value of cbuf->buf with CSAW_GET_CONSUMER
-            - cbuf->buf ^ handle to get the value of the seed
-            - Now we can call CSAW_SET_CONSUMER and using the index-too-large vuln, we overwrite cbuf->buf with 'arbitrary_val'
-            - arbitrary_val ^ seed to get the new handle
-            - Now we call CSAW_WRITE_HANDLE to trigger the arbitrary write 
-        
-        I chose to overwrite the dnotify_fsnotify_ops.should_send_event ptr. Note that it's not too reliable to overwrite this
-        because there might be other programs on the box using dnotify. I took my chances, still.
-            
+So the exploitation works as follows:
+    - Create a cbuf using CSAW_ALLOC_HANDLE and get its associated handle
+    - Use the index-too-large vuln (or whatever you want to call it) to read the value of cbuf->buf with CSAW_GET_CONSUMER
+    - cbuf->buf ^ handle to get the value of the seed
+    - Now we can call CSAW_SET_CONSUMER and using the index-too-large vuln, we overwrite cbuf->buf with 'arbitrary_val'
+    - arbitrary_val ^ seed to get the new handle
+    - Now we call CSAW_WRITE_HANDLE to trigger the arbitrary write 
 
-        Compile the exploit with gcc exploit.c -o exploit
-        We get the pretty '#' and the flag is key{help_im_trapped_in_an_exploit_sweatshop}
+I chose to overwrite the dnotify_fsnotify_ops.should_send_event ptr. Note that it's not too reliable to overwrite this
+because there might be other programs on the box using dnotify. I took my chances, still.
+    
+
+Compile the exploit with gcc exploit.c -o exploit
+We get the pretty '#' and the flag is key{help_im_trapped_in_an_exploit_sweatshop}
