@@ -9,7 +9,7 @@ We have the following:
 #define MAX_CONSUMERS 255
 
 struct csaw_buf {
-    unsigned long consumers[MAX_CONSUMERS]; [1]
+    unsigned long consumers[MAX_CONSUMERS]; // [1]
     char *buf;
     unsigned long size;
     unsigned long seed;
@@ -37,7 +37,7 @@ case CSAW_SET_CONSUMER:
     if ( ! authorized )
     return -EPERM;
 
-    cbuf->consumers[consumer_args.offset] = consumer_args.pid; [2]
+    cbuf->consumers[consumer_args.offset] = consumer_args.pid; // [2]
 
     break;
 }
@@ -73,7 +73,7 @@ case CSAW_WRITE_HANDLE:
 
     to_write = min(write_args.size, cbuf->size);
 
-    if ( copy_from_user(cbuf->buf, write_args.in, to_write) ) [3]
+    if ( copy_from_user(cbuf->buf, write_args.in, to_write) ) // [3]
         return -EFAULT;
 
     bytes_written += to_write;
@@ -96,13 +96,13 @@ When we create/allocate a handle, the function *alloc_buf()* is called which at 
 does the following:
         
 ```c
-cbuf->consumers[0] = current->pid; [1]
+cbuf->consumers[0] = current->pid; // [1]
 
 get_random_bytes(&seed, sizeof(seed));
 
 cbuf->seed = seed;
 
-handle = (unsigned long)buf ^ seed; [2]
+handle = (unsigned long)buf ^ seed; // [2]
 
 list_add(&cbuf->list, &csaw_bufs);
 
