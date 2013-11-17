@@ -82,7 +82,7 @@ case CSAW_WRITE_HANDLE:
 }
 ```
 
-At [1] we see that *csaw_buf.consumers* array is of length 255 but in [2] we see that *consumer_args.offset* is a unsigned char meaning (i.e its value can range from 0 to 255).
+At [1] we see that *csaw_buf.consumers* array is of length 255 but at [2] we see that *consumer_args.offset* is a unsigned char meaning (i.e its value can range from 0 to 255).
 The user controls the value of consumer_args.offset and consumer_args.pid so this means that we can overwrite whatever is just
 after the *csaw_buf.consumers* array which turns out to be *csaw_buf.buf*, a pointer we can write to and read from.
 At [3] we can write into *cbuf->buf* whatver is *write_args.in* (which we also control)
