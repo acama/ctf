@@ -86,7 +86,7 @@ At [1] we see that *csaw_buf.consumers* array is of length 255 but in [2] we see
 The user controls the value of consumer_args.offset and consumer_args.pid so this means that we can overwrite whatever is just
 after the *csaw_buf.consumers* array which turns out to be *csaw_buf.buf*, a pointer we can write to and read from.
 At [3] we can write into *cbuf->buf* whatver is *write_args.in* (which we also control)
-All in all, this is an arbitrary write (and read for that matter) vulnerability. Michael was very kind to have this type of vuln and not some of the other less pleasant types of vulnerabilities.
+All in all, this is an **arbitrary write** (and read for that matter) vulnerability. Michael was very kind to have this type of vuln and not some of the other less pleasant types of vulnerabilities.
 
 ##The obstacles around the vulnerability
         
@@ -149,7 +149,7 @@ So the exploitation works as follows:
 * *arbitrary_ptr ^ seed* to get the new handle
 * now we call *CSAW_WRITE_HANDLE* to trigger the arbitrary write
 
-I chose to overwrite the[*dnotify_fsnotify_ops.should_send_event*](http://lxr.free-electrons.com/source/include/linux/fsnotify_backend.h#L96) ptr. Note that it's not too reliable to overwrite this
+I chose to overwrite the [*dnotify_fsnotify_ops.should_send_event*](http://lxr.free-electrons.com/source/include/linux/fsnotify_backend.h#L96) ptr. Note that it's not too reliable to overwrite this
 because there might be other programs on the box using dnotify. I took my chances, still.
     
 Compile the exploit with gcc exploit.c -o exploit
