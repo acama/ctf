@@ -1,5 +1,5 @@
 /*
-    Main userspace shell.
+    Userland payload to trigger return of NULL from kmalloc.
 */
 
 #include <stdint.h>
